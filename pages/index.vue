@@ -1,5 +1,9 @@
 <script>
 import moment from "moment";
+
+import Sources from '~/components/Sources';
+import Pagination from '~/components/Pagination';
+
 let url = require('url');
 let Parser = require('rss-parser');
 let parser = new Parser({
@@ -8,6 +12,10 @@ let parser = new Parser({
   }
 });
 export default {
+  components: {
+    Sources,
+    Pagination,
+  },
   data() {
     return {
       sources: [
@@ -71,41 +79,6 @@ export default {
   },
   methods: {
 
-    beautifySource(source) {
-      return new URL(source).hostname;
-    },
-    makeOriginLink(link) {
-      return new URL(link).origin;
-    },
-    ucFirst(str) {
-      return str[0].toUpperCase() + str.slice(1)
-    },
-    parseDate(str) {
-      const date = moment(str)
-      return date.format('DD.MM.YYYY')
-    },
-    hideImages() {
-      this.imageVisibility=false;
-      this.isWithImageActive = false;
-      this.isWithoutImageActive = true;
-      this.isImageOff = true;
-    },
-     showImages() {
-      this.imageVisibility=true;
-      this.isWithImageActive = true;
-      this.isWithoutImageActive = false;
-      this.isImageOff = false;
-
-    },
-    onDone(el) {
-        if (this.activeElement) {
-            this.activeElement.classList.remove("activeItem")
-        }
-
-        this.activeElement = el;
-        this.activeElement.classList.add("activeItem")
-    }
-
   },
   watch: {
     $route(route) {
@@ -122,10 +95,6 @@ export default {
 }
 </script>
 
-<style scoped>
-
-</style>
-
 <template>
   <section class="container">
     <div id="newslist">
@@ -134,71 +103,24 @@ export default {
       <h1>Список новостей</h1>
       <button  class="header-title__refresh" id="refresh" @click="$fetch"></button>
       </div>
-      <input class="header__search" id="search" type="text" v-model="searchQuery" />
+      <search v-bind:searchQuery.sync="searchQuery" />
     </div>
     </div>
     <div class="menu">
-        <div class="sources-wrapper">
-    <ul id="sources">
-      <li>
-        <router-link :class="{current: currentSource === undefined }" :to="{ query: {} }" replace>Все</router-link>
-      </li>
-      <li v-for="source in sources" :key="source">
 
-        <router-link :class="{current: source.toLowerCase().includes((currentSource || ' ').toLowerCase()) }" :to="{ query: { source: beautifySource(source) } }" replace>{{ ucFirst(beautifySource(source)) }}</router-link>
-      </li>
-    </ul>
-    </div>
-    <div class="icons">
-<button  class="icons__image" id="with-image" v-bind:class="{ active: isWithImageActive }" @click="showImages"></button>
-<button class="icons__noimage" id="without-image" v-bind:class="{ active: isWithoutImageActive }" @click="hideImages"></button>
-    </div>
+    <sources :currentSource="currentSource" :sources="sources" />
+
+    <icons
+    v-bind:imageVisibility.sync="imageVisibility"
+v-bind:isWithImageActive.sync="isWithImageActive"
+v-bind:isWithoutImageActive.sync="isWithoutImageActive"
+v-bind:isImageOff.sync="isImageOff"
+     />
 </div>
-    <ul id="items">
-      <li class="items" v-bind:class="{ withoutImage: isImageOff }" v-for="item in slicedItems" :key="item.title">
-        <div class="item-img-with-description">
-        <p class="item-img" v-if="imageVisibility === true"><img  :src="item.enclosure.url" v-if="item.enclosure" ></p>
-        <div class="item-description">
-        <p class="item-description__title item-title"><a :href="item.link" target="_blank">{{ item.title }}</a></p>
-        <p class="item-description__content item-content" v-if="item.content" v-html="item.content"></p>
-        </div>
-        </div>
-        <div class="item-sources">
-        <p class="item-sources__source source"><a :href="makeOriginLink(item.link)" target="_blank">{{ beautifySource(item.link) }}</a></p>
-        <p class="item-sources__date date">{{ parseDate(item.pubDate) }}</p>
-        </div>
-      </li>
-    </ul>
-    <ul id="navigation" v-if="pagesCount > 1">
-      <li class="pages" :class="{current: currentPage == page, last: (page == pagesCount && Math.abs(page - currentPage) > 4), first:(page == 1 && Math.abs(page - currentPage) > 4)}" v-for="page in pagesCount" :key="page" v-if="Math.abs(page - currentPage) < 4 || page == pagesCount || page == 1">
-        <router-link :to="{ query: { ...$route.query, page: page } }" v-bind:style="{ color: blue }" replace>{{ page }}</router-link>
-      </li>
-    </ul>
+
+    <items :isImageOff="isImageOff" :imageVisibility="imageVisibility" :items="slicedItems" />
+
+    <pagination :currentPage="currentPage" :pagesCount="pagesCount" />
+
   </section>
 </template>
-<style>
-li.first::after {
-  content:'...';
-  font-family: Arial;
-font-weight: bold;
-font-size: 18px;
-line-height: 21px;
-  margin-left: 20px;
-
-
-color: black;
-}
-
-li.last::before {
-  content:'...';
-  margin-right: 20px;
-  font-family: Arial;
-font-weight: bold;
-font-size: 18px;
-line-height: 21px;
-
-
-color: black;
-;
-}
-</style>
